@@ -1,0 +1,181 @@
+@model PizzaShop.Entity.ViewModel.WaitingListViewModel
+
+@{
+    ViewData["Title"] = "Waiting List";
+    Layout = "_OrderAppLayout";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="custom-blue-color fw-bold">Waiting List</h2>
+    <button class="btn  btn-outline-primary" style="height: fit-content; text-wrap: nowrap;" data-bs-toggle="modal"
+        data-bs-target="#waitingTokenModal" type="button">
+        + Waiting Token
+    </button>
+</div>
+
+<ul class="nav nav-tabs mb-3" style="border: none !important; box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;;" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link sectionBtn custom-blue-color active" data-id="0" id="allCategory" data-bs-toggle="tab"
+            type="button" role="tab" aria-controls="allCategory" aria-selected="true">
+            All
+            <span style="background-color: #a39f9f;" class="w-100 px-2 rounded-circle h-100">
+                @Model.Sections.Sum(w => w.WaitingTokenList.Count)
+            </span>
+        </button>
+    </li>
+    @foreach (var sections in Model.Sections)
+    {
+        <li class="nav-item" role="presentation">
+            <a class="nav-link sectionBtn custom-blue-color" data-id="@sections.SectionId"
+                data-section-name="@sections.SectionName" data-bs-toggle="tab" type="button" role="tab">
+                @sections.SectionName
+                <span style="background-color: #a39f9f;" class="w-100 px-2 rounded-circle h-100">
+                    @sections.WaitingTokenList.Count
+                </span>
+            </a>
+        </li>
+    }
+</ul>
+
+<div class="tab-content" style="box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;" id="nav-tabContent">
+    <div class="tab-pane fade show active" style="display: block;" id="allCategory" role="tabpanel"
+        aria-labelledby="allCategory">
+        <div class="row " id="waitingListContainer">
+            <!-- Dynamically load Waiting tokens -->
+        </div>
+    </div>
+</div>
+
+<!-- Add Waiting Token Modal -->
+<div class="modal fade" id="waitingTokenModal" tabindex="-1" aria-labelledby="waitingTokenModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="waitingTokenModalLabel">Waiting Token Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="waitingTokenForm" asp-controller="OrderApp" asp-action="AddWaitingTokenForAll" method="post">
+                <input type="hidden" name="SectionId" id="SectionId" />
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="email" name="Email" class="form-control" id="floatingEmail" placeholder="Email" />
+                        <label for="floatingEmail">Email*</label>
+                        <div class="invalid-feedback">Email is Required.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Name" class="form-control" id="floatingName" placeholder="Name" />
+                        <label for="floatingName">Name*</label>
+                        <div class="invalid-feedback">Name is Required.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Phone" class="form-control" id="floatingPhone"
+                            placeholder="Mobile Number" pattern="^[0-9]{10}$" />
+                        <label for="floatingPhone">Mobile Number*</label>
+                        <div class="invalid-feedback">Mobile Number is Required.</div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col form-floating mb-3">
+                            <input type="number" name="TotalPersons" class="form-control" id="floatingPersons"
+                                placeholder="No. of Persons" min="1" />
+                            <label for="floatingPersons">No. of Person(s)*</label>
+                            <div class="invalid-feedback">No. of Person(s) is Required.</div>
+                        </div>
+                        <div class="col form-floating mb-3">
+                            <select name="SectionId123" class="form-select" id="floatingSection">
+                                <option value="" disabled selected>Select Section</option>
+                                @foreach (var s in Model.Sections)
+                                {
+                                    <option value="@s.SectionId">@s.SectionName</option>
+                                }
+                            </select>
+                            <label for="floatingSection">Section*</label>
+                            <div class="invalid-feedback">Please select a Section.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Waiting Token Modal -->
+<div class="modal fade" id="editWaitingTokenModal" tabindex="-1" aria-labelledby="waitingTokenModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="waitingTokenModalLabel">Waiting Token Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="waitingTokenForm" asp-controller="OrderApp" asp-action="UpdateWaitingToken" method="post">
+                <input type="hidden" id="editTokenSectionId" />
+                <input type="hidden" id="editTokenId" name="WaitingTokenId" />
+                <input type="hidden" id="editTokenCustomerId" name="CustomerId" />
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="email" name="Email" class="form-control" id="editTokenEmail" placeholder="Email" />
+                        <label for="floatingEmail">Email*</label>
+                        <div class="invalid-feedback">Email is Required.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Name" class="form-control" id="editTokenName" placeholder="Name" />
+                        <label for="floatingName">Name*</label>
+                        <div class="invalid-feedback">Name is Required.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Phone" class="form-control" id="editTokenPhone"
+                            placeholder="Mobile Number" pattern="^[0-9]{10}$" />
+                        <label for="floatingPhone">Mobile Number*</label>
+                        <div class="invalid-feedback">Mobile Number is Required.</div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col form-floating mb-3">
+                            <input type="number" name="TotalPersons" class="form-control" id="editTokenPersons"
+                                placeholder="No. of Persons" min="1" />
+                            <label for="floatingPersons">No. of Person(s)*</label>
+                            <div class="invalid-feedback">No. of Person(s) is Required.</div>
+                        </div>
+                        <div class="col form-floating mb-3">
+                            <select name="SectionId123" class="form-select" id="editTokenSection">
+                                <option value="" disabled selected>Select Section</option>
+                                @foreach (var s in Model.Sections)
+                                {
+                                    <option value="@s.SectionId">@s.SectionName</option>
+                                }
+                            </select>
+                            <label for="floatingSection">Section*</label>
+                            <div class="invalid-feedback">Please select a Section.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        fetchWaitingTokens(0);
+    });
+</script>
+
+<script src="~/js/WaitingListView.js"></script>

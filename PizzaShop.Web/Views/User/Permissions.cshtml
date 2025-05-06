@@ -1,0 +1,196 @@
+@using PizzaShop.Entity.ViewModel;
+
+@model List<PermissionsViewModel>;
+
+@{
+    ViewData["Title"] = "Permissions";
+}
+
+<div class="add_user_heading d-flex justify-content-between">
+    <div class="fw-bold fs-2">Permissions</div>
+    <div class="d-flex">
+        <img src="" alt="">
+        <a asp-controller="User" asp-action="Roles"
+            class="btn d-flex align-items-center text-white custom-btn-bg ms-3">&lt; Back</a>
+    </div>
+</div>
+
+<div class="permissions mb-2 pb-1">
+    <div class="form-floating w-50">
+        <input type="email" class="form-control" id="floatingInput" placeholder="name@example.com"
+            value="@ViewBag.SelectedRole" data-role="@ViewBag.SelectedRole" disabled>
+        <label for="floatingInput">Role</label>
+    </div>
+
+    <div class="permission_table table-responsive">
+        <table class="table">
+            <tr>
+                <td class="fw-bold">
+                    <div>
+                        <input class="form-check-input " type="checkbox" value="" id="selectAll">
+                    </div>
+                </td>
+                <td class="fw-bold">Permission</td>
+                <td class="fw-bold">
+                    <div class="d-flex justify-content-center">Can View</div>
+                </td>
+                <td class="fw-bold">
+                    <div class="d-flex justify-content-center">Can Add/Edit</div>
+                </td>
+                <td class="fw-bold">
+                    <div class="d-flex justify-content-center">Can Delete</div>
+                </td>
+            </tr>
+
+            @foreach (var permission in Model)
+            {
+                <tr>
+                    <td scope="col" class="">
+                        <div class="form-check">
+                            <input class="form-check-input row-checkbox " type="checkbox" value="" id="flexCheckDefault">
+                        </div>
+                    </td>
+                    <td>@permission.PermissionName</td>
+                    <td>
+                        <div class="form-check form-switch d-flex justify-content-center">
+                            <input type="checkbox" class="form-check-input custom-switch" data-id="@permission.PermissionId"
+                                data-name="@permission.PermissionName" data-role="@ViewBag.SelectedRole" data-type="CanView"
+                                @(permission.CanView ? "checked" : "")>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch d-flex justify-content-center">
+                            <input type="checkbox" class="form-check-input custom-switch" data-id="@permission.PermissionId"
+                                data-name="@permission.PermissionName" data-role="@ViewBag.SelectedRole"
+                                data-type="CanAddEdit" @(permission.CanAddEdit ? "checked" : "")>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch d-flex justify-content-center">
+                            <input type="checkbox" class="form-check-input custom-switch" data-id="@permission.PermissionId"
+                                data-name="@permission.PermissionName" data-role="@ViewBag.SelectedRole"
+                                data-type="CanDelete" @(permission.CanDelete ? "checked" : "")>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </table>
+        <div class="create_cancel_btn mt-3 mb-3 d-flex justify-content-end me-2">
+            <button id="saveBtn" type="button" class="btn custom-btn-bg  align-items-center text-white me-2">Save</button>
+            <button class="btn custom-blue-borderBtn" onclick="PageReload()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var urlPramas = new URLSearchParams(window.location.search);
+        var role = urlPramas.get("role");
+
+        var row = $(".custom-switch").closest("tr");
+        var allSwitches = row.find(".custom-switch");
+        var rowCheckbox = row.find(".row-checkbox");
+
+        if (allSwitches.filter(":checked").length > 0) {
+            rowCheckbox.prop("checked", true);
+        } else {
+            rowCheckbox.prop("checked", false);
+        }
+
+        $(document).on('change', "#selectAll", function () {
+            var isChecked = $(this).is(":checked");
+            $(".row-checkbox, .custom-switch").prop("checked", isChecked);
+        });
+
+
+        $(".row-checkbox").on('change', function () {
+            var isChecked = $(this).is(":checked");
+            $(this).closest("tr").find(".custom-switch").prop("checked", isChecked);
+        });
+
+        @* var customSwitch = $(".custom-switch").is(":checked");
+    console.log("CustomSwitch", customSwitch);
+    $(customSwitch).closest("tr").find(".row-checkbox").prop("checked", customSwitch); *@
+
+            $(".custom-switch").change(function () {
+                var row = $(this).closest("tr");
+                var allSwitches = row.find(".custom-switch");
+                var rowCheckbox = row.find(".row-checkbox");
+
+                if (allSwitches.filter(":checked").length > 0) {
+                    var abc = allSwitches.filter(":checked").length;
+                    console.log("allSwitches", abc);
+                    rowCheckbox.prop("checked", true);
+                } else {
+                    var abc = allSwitches.filter(":checked").length;
+                    console.log("allSwitches", abc);
+                    rowCheckbox.prop("checked", false);
+                }
+
+
+                @* if ($(".row-checkbox:checked").length === $(".row-checkbox").length) {
+            var abc = $(".row-checkbox:checked").length;
+            console.log("row-checkbox:checked", abc);
+            console.log("row-checkbox", $(".row-checkbox").length);
+            $("#selectAll").prop("checked", true);
+        } else {
+            var abc = $(".row-checkbox:checked").length;
+            console.log("row-checkbox:checked", abc);
+            console.log("row-checkbox", $(".row-checkbox").length);
+            $("#selectAll").prop("checked", false);
+        } *@
+    });
+
+        $("#saveBtn").click(function () {
+            console.log("sdasdadd");
+            var updatedPermissions = [];
+
+            $(".custom-switch").each(function () {
+                var permissionId = $(this).data("id");
+                var Rolename = $(this).data("role")
+                var permissionName = $(this).data("name");
+                var type = $(this).data("type");
+                var isChecked = $(this).is(":checked");
+
+                if (permissionId && Rolename && type) {
+                    var existing = updatedPermissions.find(p => p.PermissionId === permissionId);
+                    if (!existing) {
+                        existing = {
+                            Rolename: Rolename,
+                            PermissionId: permissionId,
+                            PermissionName: permissionName,
+                            CanView: false,
+                            CanAddEdit: false,
+                            CanDelete: false
+                        };
+                        updatedPermissions.push(existing);
+                    }
+                    existing[type] = isChecked;
+                }
+            });
+
+            console.log("Sending Data:", JSON.stringify(updatedPermissions)); // **Important**
+
+            $.ajax({
+                url: "/User/Permissions?role=" + encodeURIComponent(role),
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(updatedPermissions),
+                success: function (response) {
+                    console.log("Server Response:", response);
+                    if (response.success) {
+                        toastr.success("Permissions updated successfully.");
+                    } else {
+                        toastr.alert("Failed to update permissions: " + response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                    toastr.alert("Error updating permissions. Check console logs.");
+                }
+            });
+        });
+    });
+    
+
+</script>

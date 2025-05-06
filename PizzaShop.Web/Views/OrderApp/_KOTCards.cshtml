@@ -1,0 +1,149 @@
+@model List<PizzaShop.Entity.ViewModel.KOTOrderCardViewModel>
+
+@{
+    bool first = true;
+    Layout = null;
+    @* var CategoryName = Model.OrdersDeatil[0].items.FirstOrDefault().CategoryName; *@
+}
+<div class="bg-white p-2">
+    <div class="KOTCardsHeading d-flex align-items-center justify-content-between mb-3">
+    <div class="custom-blue-color p-2 fw-bold">
+        @if(Model[0].CategoryName == null)
+        {
+            <span>All</span>
+        }
+        else
+        {
+            @Model[0].CategoryName
+        }
+    </div>
+    <div class="KOTBtns">
+        <button id="inProgressBtn" class="btn custom-btn-bg text-white">In Progress</button>
+        <button id="readyBtn" class="btn custom-blue-border custom-blue-color">Ready</button>
+        <button class="btn custom-blue-border custom-blue-color fw-bold" onclick="prevSlide()">&lt;</button>
+        <button class="btn custom-blue-border custom-blue-color fw-bold" onclick="nextSlide()">&gt;</button>
+    </div>
+</div>
+
+<div class="row" id="cardWrapper">
+    @foreach (var order in Model)
+    {
+        if (order.Items.All(item => item.InProgressQuantity == 0))
+        {
+            continue; // Skip rendering this card
+        }
+        string? sectionName = Model.First().SectionTable.FirstOrDefault()?.SectionName ?? "N/A";
+        string? tableNames = string.Join(", ", order.SectionTable.Select(t => t.TableName));
+        TimeSpan  timeSinceOrder = DateTime.Now - order.CreatedAt;
+        string? placedTimeAgo = timeSinceOrder.TotalDays >= 1 
+            ? $"{(int)timeSinceOrder.TotalDays} days ago"
+            : timeSinceOrder.TotalHours >= 1 
+                ? $"{(int)timeSinceOrder.TotalHours} hours ago"
+                : timeSinceOrder.TotalMinutes >= 1 
+                    ? $"{(int)timeSinceOrder.TotalMinutes} min ago"
+                    : "Just now";
+
+        string? timeRemainingFormatted = $"{(int)timeSinceOrder.TotalDays} days {(int)timeSinceOrder.Hours} hours {(int)timeSinceOrder.Minutes} min {(int)timeSinceOrder.Seconds} sec";
+        
+        <button type="button" data-order='@Html.Raw(Json.Serialize(order))' style="width: 390px !important;" class="btn openOrderModal d-flex pe-2" data-bs-toggle="modal" data-bs-target="#inProgressModal" data-order-id="@order.OrderId">
+            <div class="kotCard overflow-auto w-100" style="height: 40vh !important;">
+                <div class="card h-100 d-flex flex-column  order-card" data-order-id="@order.OrderId" style="cursor: pointer; border: 1.5px solid #979797 ; border-style: dashed;">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="custom-blue-color h5"><strong>#@order.OrderId</strong></div>
+                            <div>
+                                <i class="fa-regular fa-clock me-1 p-1 text-muted"></i>
+                                <span class="text-muted">@timeRemainingFormatted</span>
+                            </div>
+                        </div>
+                        <div class="d-flex">
+                            <div>@sectionName • </div>
+                            <div>@tableNames</div>
+                        </div>
+                    </div>
+
+                    <div class="card-body overflow-auto p-2">
+                        @foreach (var item in order.Items)
+                        {
+                            <div class="d-flex justify-content-between mt-2">
+                                <p class="text-secondary p-0 m-0 fw-medium">@item.ItemName</p>
+                                <p class="text-secondary p-0 m-0 fw-medium">@item.InProgressQuantity</p>
+                            </div>
+
+                            @if (item.Modifiers != null && item.Modifiers.Any())
+                            {
+                                <ul class="list  mb-1">
+                                    @foreach (var mod in item.Modifiers)
+                                    {
+                                        <li class="d-flex justify-content-start p-0">• @mod.ModifierName</li>
+                                    }
+                                </ul>
+                            }
+
+                            @if (!string.IsNullOrEmpty(order.ItemInstruction))
+                            {
+                                <div class="ms-2 mb-2">
+                                    <span class="text-info">Instruction:</span>
+                                    <span class="text-secondary small">@order.ItemInstruction</span>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    <div class="card-footer text-body-secondary" style="height: 70px;">
+                        @if (!string.IsNullOrEmpty(order.OrderInstruction))
+                        {
+                            <div>
+                                <span class="text-info">Order Instruction:</span>
+                                <span class="text-secondary">@order.OrderInstruction</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </button>
+    }
+    <div class="modal fade" id="inProgressModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Order Id: #</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table class="table fs-6">
+                        <thead>
+                            <tr class="d-flex justify-content-between">
+                                <th>Item</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderDetailsModalBody">
+                            <!-- Order details will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button id="markReadyBtn" type="button" class="btn custom-btn-bg text-white d-none">Mark as Ready</button>
+                    <button id="markInProgressBtn" data-order-id="Model.order" type="button" class="btn custom-btn-bg text-white d-none">Mark as In Progress</button>
+                    <button type="button" class="btn custom-blue-border custom-blue-color" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        console.log("KOT Cards Loaded");
+        const categoryId = $('#kotTabs button.active').data('id');
+        setupKOTCardButtons(categoryId);
+    });
+
+    
+
+
+</script>
+
+@* <script src="~/js/KOTview.js"></script> *@ 

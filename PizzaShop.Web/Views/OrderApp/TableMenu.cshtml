@@ -1,0 +1,490 @@
+@model PizzaShop.Entity.ViewModel.OrderAppTableModuleViewModel
+
+@{
+    PizzaShop.Entity.ViewModel.AssignTableViewModel? assignModel = new PizzaShop.Entity.ViewModel.AssignTableViewModel
+    {
+        AvailableSections = Model.Sections.Select(m => m.SectionName).Distinct().ToList()
+        @* OrderId = Model.Sections., *@
+    };
+    Layout = "_OrderAppLayout";
+    ViewData["Title"] = "Tables";
+}
+
+<div class="container-fluid d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold custom-blue-color">Table View</h2>
+    <div class="d-flex gap-3 align-items-center mb-3">
+        <span class="badge bg-secondary">Available</span>
+        <span class="badge bg-primary">Selected</span>
+        <span class="badge bg-success">Assigned</span>
+        <span class="badge bg-info text-dark">Running</span>
+    </div>
+</div>
+
+<div id="accordion">
+    @foreach (var section123 in Model.Sections)
+    {
+        <div class="accordion  mb-3">
+            <div class="accordion-item">
+                <div class="accordion-header d-flex justify-content-between" id="headingGround">
+                    <button class="accordion-button bg-white custom-blue-color" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#Floor_@section123.SectionId">
+                        @section123.SectionName
+                    </button>
+
+                    <div class="d-flex align-items-center m-1" >
+                        <ul class="d-flex align-items-center mb-0 me-3 gap-2">
+                            <li class="badge d-flex align-items-center bg-secondary">@section123.Available</li>
+                            <li class="badge bg-success">@section123.Assigned</li>
+                            <li class="badge bg-info text-dark">@section123.Running</li>
+                        </ul>
+                        
+                        <button class="btn  btn-outline-primary" style="height: fit-content; text-wrap: nowrap;"
+                            data-bs-toggle="modal" data-bs-target="#waitingTokenModal" type="button"
+                            data-section="@section123.SectionName" data-section-id="@section123.SectionId">
+                            + Waiting Token
+                        </button>
+                    </div>
+                </div>
+
+                <div id="Floor_@section123.SectionId" class="accordion-collapse collapse ">
+                    <div class="accordion-body">
+                        <div class="d-flex row gap-3 flex-wrap ">
+                            @foreach (PizzaShop.Entity.ViewModel.TableCard? table in section123.Tables)
+                            {
+                                string? tableStatus = table.TableStatus;
+                                string? tableStatusClass = tableStatus switch
+                                {
+                                    "Available" => "bg-secondary",
+                                    "Assigned" => "bg-success",
+                                    "Running" => "bg-info text-dark",
+                                    _ => ""
+                                };
+                                var Link = "#";
+                                if(tableStatus == "Assigned" || tableStatus == "Running")
+                                {
+                                    Link = Url.Action("MenuMenu", "OrderApp", new { searchText = "", categoryId = 0, orderId = @table.OrderId});
+                                }
+                                string? clickableClass = tableStatus == "Available" ? "available-clickable" : "";
+                                <a href="@Link" style="text-decoration: none;" class="card col-1 table-card text-white border @tableStatusClass  @clickableClass"
+                                    data-table-id="@table.TableId" data-section="@section123.SectionName" style="width: 10rem;">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">@table.TableName</h6>
+                                        <p class="card-text"><i class="bi bi-people"></i>@table.Capacity</p>
+                                        @* <p class="card-text"><i class="bi bi-clock"></i> 24d 5h 33m</p> *@
+                                    </div>
+                                </a>
+                            }
+                            @*  More table cards  *@
+                        </div>
+                        <button class="btn btn-primary assignBtnForSection ms-auto d-flex justify-content-end"
+                            data-bs-toggle="offcanvas" data-section-id="@section123.SectionId"
+                            data-bs-target="#assignOffcanvas" style="height: fit-content;" type="button"
+                            disabled>Assign</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Waiting Token Modal -->
+<div class="modal fade" id="waitingTokenModal" tabindex="-1" aria-labelledby="waitingTokenModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title" id="waitingTokenModalLabel">Waiting Token Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="waitingTokenForm" asp-controller="OrderApp" asp-action="AddWaitingToken" method="post">
+                <input type="hidden" name="SectionId" id="SectionId" />
+                <div class="modal-body">
+                    <div class="form-floating mb-3">
+                        <input type="email" name="Email" class="form-control" id="floatingEmail" placeholder="Email" />
+                        <label for="floatingEmail">Email*</label>
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Name" class="form-control" id="floatingName" placeholder="Name" />
+                        <label for="floatingName">Name*</label>
+                        <div class="invalid-feedback">Please enter the customer's name.</div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" name="Phone" class="form-control" id="floatingPhone"
+                            placeholder="Mobile Number" pattern="^[0-9]{10}$" />
+                        <label for="floatingPhone">Mobile Number*</label>
+                        <div class="invalid-feedback">Enter a valid 10-digit mobile number.</div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col form-floating mb-3">
+                            <div class="form-floating mb-3">
+                                <input type="number" name="TotalPersons" class="form-control" id="floatingPersons"
+                                    placeholder="No. of Persons" min="1" />
+                                <label for="floatingPersons">No. of Person(s)*</label>
+                                <div class="invalid-feedback">Please enter at least 1 person.</div>
+                            </div>
+                        </div>
+                        <div class="col form-floating mb-3">
+                            <select name="SectionId123" class="form-select pe-none" id="floatingSection">
+                                <option value="" disabled selected>Select Section</option>
+                                @foreach (var s in Model.Sections)
+                                {
+                                    <option value="@s.SectionId">@s.SectionName</option>
+                                }
+                            </select>
+                            <label for="floatingSection">Section*</label>
+                            <div class="invalid-feedback">Please select a section.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* offcanvas for waiting token *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="assignOffcanvas" aria-labelledby="assignOffcanvasLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title custom-blue" id="assignOffcanvasLabel">Waiting List</h5>
+        @* <input type="hidden" id="SelectedTableId" name="SelectedTableId" /> *@
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="waitinglistCustomerDeatil">
+            @* @assignModel.WaitingCustomers[0].Name *@
+            <!-- Customer list will be dynamically populated here -->
+        </div>
+        <h5 class="custom-blue">Customer Detail</h5>
+        @* Offcanvas Form: Assign Table *@
+        <form asp-controller="OrderApp" asp-action="AssignCustomerToTableAsync" method="post" class="d-flex flex-column gap-3" id="assignTableForm">
+            <input type="hidden" id="SelectedTableId" name="SelectedTableId" />
+            <input type="hidden" id="SectionName" name="SectionName" />
+            <input type="hidden" id="WaitingTokenId" name="Id" />
+            <input type="hidden" id="SectionId" name="SectionId" />
+            <input type="hidden" id="CustomerId" name="CustomerId" />
+            <input type="hidden" id="OrderId" name="OrderId" />
+
+            <!-- Email -->
+            <div class="form-floating">
+                <input name="Email" type="email" class="form-control" id="Email" placeholder="Email" />
+                <label for="Email">Email</label>
+                <span id="emailValidation" class="text-danger small"></span>
+            </div>
+
+            <!-- Name -->
+            <div class="form-floating">
+                <input name="Name" class="form-control" id="Name" placeholder="Name" />
+                <label for="Name">Name</label>
+                <span id="nameValidation" class="text-danger small"></span>
+            </div>
+
+            <!-- Mobile -->
+            <div class="form-floating">
+                <input name="Mobile" class="form-control" id="Mobile" placeholder="Mobile" maxlength="10" />
+                <label for="Mobile">Mobile</label>
+                <span id="mobileValidation" class="text-danger small"></span>
+            </div>
+
+            <div class="row">
+                <!-- Number of Persons -->
+                <div class="col-6">
+                    <div class="form-floating">
+                        <input name="NoOfPersons" class="form-control" id="NoOfPersons" placeholder="No. Of Persons" />
+                        <label for="NoOfPersons">No. Of Persons</label>
+                        <span id="noOfPersonsValidation" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <!-- Section -->
+                <div class="col-6">
+                    <div class="form-floating">
+                        <select name="SectionName" class="form-select" style="height: 60px !important;" id="SectionDropdown">
+                            <option selected disabled value="">Select Section</option>
+                            @foreach (var sections in assignModel.AvailableSections)
+                            {
+                                <option value="@sections">@sections</option>
+                            }
+                        </select>
+                        <label for="SectionDropdown">Section</label>
+                        <span id="sectionValidation" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit and Cancel Buttons -->
+            <div class="d-flex justify-content-end gap-2 mt-2">
+                <button type="submit" class="btn text-white" style="background-color: #0066a7;">Assign</button>
+                <button type="button" class="btn" data-bs-dismiss="offcanvas"
+                    style="border: 1px solid #0066a7; color: #0066a7;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* <script src="~/js/TableMenu.js"></script> *@
+<script>
+    $(document).ready(function () {
+
+        console.log("Hello from Table Module");
+        //for click assign button only when available table is selected
+        $(".table-card.available-clickable").click(function () {
+            const $selectedCard = $(this);
+            const sectionBody = $selectedCard.closest(".accordion-body");
+            const assignButton = sectionBody.find(".assignBtnForSection");
+            const tableId = $selectedCard.data("table-id");
+            const sectionName = $selectedCard.data("section");
+
+            // If already selected, unselect it
+            if ($selectedCard.hasClass("selected-table")) {
+                // Unselect the card
+                $selectedCard.removeClass("selected-table").css("border", "2px solid transparent");
+
+                // Clear hidden fields
+                @* $("#SelectedTableId").val("");
+                $("#SectionName").val(""); *@
+
+                    // Disable the assign button again
+                    assignButton.prop("disabled", true);
+                assignButton.removeAttr("data-table-id").removeAttr("data-section");
+
+            } else {
+                // Unselect all
+                @* $(".table-card.available-clickable").removeClass("selected-table").css("border", "2px solid transparent"); *@
+
+                // Highlight new selection
+                $selectedCard.addClass("selected-table").css("border", "2px solid #0d6efd");
+
+                // Set values
+                @* $("#SelectedTableId").val(tableId);
+                $("#SectionName").val(sectionName); *@
+
+                    // Enable the right assign button
+                    $(".assignBtnForSection").prop("disabled", true); // disable all
+                assignButton.prop("disabled", false)
+                    .attr("data-table-id", tableId)
+                    .attr("data-section", sectionName);
+            }
+        });
+    });
+
+    $(".accordion-button").on('click', function () {
+        console.log("Hello from floorAccordion");
+    });
+
+    $(".accordion-button").click(function (e) {
+        const target = $(this).data("bs-target");
+        $(".accordion-collapse").not(target).collapse("hide");
+        $(target).collapse("toggle");
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // const assignButtons = document.querySelectorAll(".open-assign-offcanvas"); // i am change
+        const assignButtons = document.querySelectorAll(".assignBtnForSection");
+
+
+        assignButtons.forEach(button => {
+            button.addEventListener("click", handleAssignButtonClick);
+        });
+
+        function handleAssignButtonClick() {
+            const sectionId = $(this).data('section-id');
+            const sectionName = this.getAttribute("data-section");
+            // const tableId = this.getAttribute("data-table-id");
+            const selectedCards = document.querySelectorAll('.table-card.selected-table');
+            const selectedTableIds = Array.from(selectedCards).map(card => card.getAttribute('data-table-id'));
+
+            const tableIdsString = selectedTableIds.join(','); // or JSON.stringify(selectedTableIds) if backend expects an array
+            // const tableIdsString = JSON.stringify(selectedTableIds); // produces [1,2,3]
+            console.log("Selected Table IDs: ", tableIdsString);
+            console.log("table id is ", tableIdsString, " ", sectionName);
+
+            const assignOffcanvas = document.querySelector("#assignOffcanvas");
+            if (!assignOffcanvas) {
+                console.warn("Offcanvas element not found.");
+                return;
+            }
+
+            // Fill basic table and section inputs
+            setInput(assignOffcanvas, "#SectionName", sectionName);
+            setInput(assignOffcanvas, "#SelectedTableId", tableIdsString);
+
+
+            // Load waiting list for section
+            fetch(`/OrderApp/GetWaitingCustomers?sectionId=${sectionId}`)
+                .then(response => response.json())
+                .then(customers => {
+                    const listContainer = document.querySelector("#waitinglistCustomerDeatil");
+                    if (!listContainer) {
+                        console.warn("Customer list container not found.");
+                        return;
+                    }
+
+                    if (!Array.isArray(customers) || customers.length === 0) {
+                        listContainer.innerHTML = `<p class="text-muted">No customers found.</p>`;
+                        return;
+                    }
+
+                    listContainer.innerHTML = renderCustomerTable(customers, tableIdsString, sectionName);
+                    setupCustomerSelection(assignOffcanvas);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch waiting list:", err);
+                });
+        }
+
+        function setInput(container, selector, value) {
+            const input = container.querySelector(selector);
+            if (input) {
+                input.value = value || "";
+            } else {
+                console.warn(`Input ${selector} not found in container.`);
+            }
+        }
+
+        function renderCustomerTable(customers, selectedTableId, sectionName) {
+            return `
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Name</th>
+                    <th class="text-center">No Of Person</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${customers.map(customer => {
+                    console.log("Customer data: ", customer);
+                const customerData = {
+                    tokenId: customer.waitingTicketId,
+                    customerId: customer.id,
+                    name: customer.name,
+                    email: customer.email,
+                    mobile: customer.mobile,
+                    noOfPersons: customer.noOfPersons,
+                    sectionId: customer.sectionId,
+                    sectionName: sectionName,
+                    selectedTableId: selectedTableId,
+                };
+
+                return `
+                        <tr>
+                            <td class="text-center align-middle">
+                                <input class="form-check-input RadionBtn" type="radio" name="radioDefault"
+                                    id="radioDefault${customer.id}"
+                                    data-obj='${JSON.stringify(customerData)}'>
+                            </td>
+                            <td class="table-row text-center">#${customer.id}</td>
+                            <td class="table-row text-center">${customer.name}</td>
+                            <td class="table-row text-center">${customer.noOfPersons}</td>
+                        </tr>
+                    `;
+            }).join("")}
+            </tbody>
+        </table>
+        `;
+        }
+
+
+        function setupCustomerSelection(assignOffcanvas) {
+            const radios = document.querySelectorAll(".RadionBtn");
+
+            radios.forEach(radio => {
+                radio.addEventListener("change", () => {
+                    const dataJson = radio.getAttribute("data-obj");
+                    if (!dataJson) {
+                        console.warn("No customer data attached to radio button.");
+                        return;
+                    }
+
+                    let customerData;
+                    try {
+                        customerData = JSON.parse(dataJson);
+                    } catch (e) {
+                        console.error("Failed to parse customer data JSON:", e);
+                        return;
+                    }
+
+                    setInput(assignOffcanvas, "#Email", customerData.email);
+                    setInput(assignOffcanvas, "#Name", customerData.name);
+                    setInput(assignOffcanvas, "#Mobile", customerData.mobile);
+                    setInput(assignOffcanvas, "#NoOfPersons", customerData.noOfPersons);
+                    setInput(assignOffcanvas, "#SectionId", customerData.sectionId);
+                    setInput(assignOffcanvas, "#SelectedTableId", customerData.selectedTableId);
+                    setInput(assignOffcanvas, "#SectionName", customerData.sectionName);
+                    setInput(assignOffcanvas, "#WaitingTokenId", customerData.tokenId);
+                    setInput(assignOffcanvas, "#CustomerId", customerData.customerId);
+                    setInput(assignOffcanvas, "#OrderId", customerData.orderId);
+
+                    // Set dropdown if exists
+                    const sectionDropdown = document.querySelector("#SectionDropdown");
+                    if (sectionDropdown && customerData.sectionName) {
+                        sectionDropdown.value = customerData.sectionName;
+                    }
+                });
+            });
+        }
+    });
+
+    // Listen for radio button selection to auto-fill the form
+    @* document.addEventListener("change", function (event) {
+        if (event.target.classList.contains("RadionBtn")) {
+            const customerData = JSON.parse(event.target.getAttribute("data-obj"));
+            console.log(customerData.sectionName);
+            document.querySelector("#SectionName").value = customerData.sectionName || "";
+
+            // Check and set hidden table ID
+            const tableIdInput = document.querySelector("#SelectedTableId");
+            if (tableIdInput) {
+                tableIdInput.value = customerData.selectedTableId || "";
+            }
+            console.log(customerData.selectedTableId);
+
+            // Check and set section name
+            const sectionNameInput = document.querySelector("#SectionName");
+            if (sectionNameInput) {
+                sectionNameInput.value = customerData.sectionName || "";
+            }
+
+            // Check and set email
+            const emailInput = document.querySelector("#Email");
+            if (emailInput) {
+                emailInput.value = customerData.email || "";
+            }
+
+            // Check and set name
+            const nameInput = document.querySelector("#Name");
+            if (nameInput) {
+                nameInput.value = customerData.name || "";
+            }
+
+            // Check and set mobile
+            const mobileInput = document.querySelector("#Mobile");
+            if (mobileInput) {
+                mobileInput.value = customerData.mobile || "";
+            }
+
+            // Check and set number of persons
+            const noOfPersonsInput = document.querySelector("#NoOfPersons");
+            if (noOfPersonsInput) {
+                noOfPersonsInput.value = customerData.noOfPersons || "";
+            }
+
+            // Check if the section dropdown exists and set its value
+            const sectionDropdown = document.querySelector("#SectionDropdown");
+            if (sectionDropdown && customerData.sectionName) {
+                sectionDropdown.value = customerData.sectionName;
+            }
+        }
+    }); *@
+</script>
