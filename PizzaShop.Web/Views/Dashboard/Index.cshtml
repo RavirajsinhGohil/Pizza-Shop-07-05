@@ -389,3 +389,165 @@
         }
     });
 </script>
+
+
+[HttpGet("Index")]
+    public async Task<IActionResult> Index(string filter = "Current Month")
+    {
+        var model = await _dashboardRepo.GetDashboardDataAsync(filter);
+        return View(model);
+    }
+
+public async Task<DashboardViewModel> GetDashboardDataAsync(string filter)
+    {
+        DateTime startDate, endDate;
+        var today = DateTime.Today;
+
+        switch (filter)
+        {
+            case "Today":
+                startDate = today;
+                endDate = today.AddDays(1);
+                break;
+            case "Last 7 Days":
+                startDate = today.AddDays(-6);
+                endDate = today.AddDays(1);
+                break;
+            case "Last 30 Days":
+                startDate = today.AddDays(-29);
+                endDate = today.AddDays(1);
+                break;
+            case "Current Month":
+                startDate = new DateTime(today.Year, today.Month, 1);
+                endDate = startDate.AddMonths(1);
+                break;
+            default:
+                startDate = new DateTime(today.Year, today.Month, 1);
+                endDate = startDate.AddMonths(1);
+                break;
+        }
+
+        var ordersInRange = await _context.Orders
+            .Where(o => o.Createdat >= startDate && o.Createdat < endDate)
+            .ToListAsync();
+
+        var totalSales = ordersInRange.Sum(o => o.Totalamount);
+        var totalOrders = ordersInRange.Count;
+        var avgOrderValue = Math.Round(totalOrders > 0 ? totalSales / totalOrders : 0,2);
+
+        // Serving time calculation from OrderDetails
+        var servedDetails = await _context.Orderdetails
+            .Include(od => od.Order)
+            .Where(od =>
+                od.Servingtime != null &&
+                od.Order != null &&
+                od.Order.Createdat >= startDate &&
+                od.Order.Createdat < endDate &&
+                od.Order.Createdat.HasValue)
+            .ToListAsync();
+
+        double avgWaitingTime = servedDetails.Any()
+            ? servedDetails.Average(od => (od.Servingtime.Value - od.Order.Createdat.Value).TotalMinutes)
+            : 0;
+
+        // Revenue chart data
+        var revenueChart = ordersInRange
+            .GroupBy(o => o.Createdat.Value.Date)
+            .Select(g => new ChartDataPoint
+            {
+                Label = g.Key.ToString("MMM dd"),
+                Value = g.Sum(o => o.Totalamount)
+            })
+            .OrderBy(g => g.Label)
+            .ToList();
+
+        // Customer growth
+        var customerGrowth = _context.Customers
+            .Where(c => c.Createdat.HasValue && c.Createdat >= startDate && c.Createdat < endDate)
+            .GroupBy(c => c.Createdat.Value.Date)
+            .AsEnumerable() 
+            .Select(g => new ChartDataPoint
+            {
+                Label = g.Key.ToString("MMM dd"),
+                Value = g.Count()
+            })
+            .OrderBy(e => e.Label)
+            .ToList(); 
+
+        // Top selling items
+        var topItems = await _context.Orderdetails
+            .Where(od => od.Order.Createdat >= startDate && od.Order.Createdat < endDate)
+            .GroupBy(od => od.Item.Itemname)
+            .OrderByDescending(g => g.Sum(od => od.Quantity))
+            .Take(5)
+            .Select(g => new TopItem
+            {
+                Name = g.Key,
+                OrderCount = g.Sum(od => od.Quantity),
+                ImageUrl = "/images/dining-menu.png"
+            })
+            .ToListAsync();
+
+        // Least selling items
+        var leastItems = await _context.Orderdetails
+            .Where(od => od.Order.Createdat >= startDate && od.Order.Createdat < endDate)
+            .GroupBy(od => od.Item.Itemname)
+            .OrderBy(g => g.Sum(od => od.Quantity))
+            .Take(5)
+            .Select(g => new TopItem
+            {
+                Name = g.Key,
+                OrderCount = g.Sum(od => od.Quantity),
+                ImageUrl = "/images/dining-menu.png"
+            })
+            .ToListAsync();
+
+        // Waiting list count (no filter for now)
+        var waitingCount = await _context.Customerwaitingtokens.Where(i => i.Tableassigntime == null).CountAsync();
+        var NewCustomer = await _context.Customers.Where(cs => cs.Createdat >= startDate && cs.Createdat < endDate).CountAsync();
+
+        return new DashboardViewModel
+        {
+            TotalSales = totalSales,
+            TotalOrders = totalOrders,
+            AverageOrderValue = avgOrderValue,
+            AverageWaitingTime = Math.Round(avgWaitingTime, 2),
+            RevenueChartData = revenueChart,
+            CustomerGrowthData = customerGrowth,
+            TopSellingItems = topItems,
+            LeastSellingItems = leastItems,
+            WaitingListCount = waitingCount,
+            NewCustomer = NewCustomer
+        };
+    }
+namespace DAL.ViewModels;
+
+public class DashboardViewModel
+{
+    public decimal TotalSales { get; set; }
+    public int TotalOrders { get; set; }
+    public decimal AverageOrderValue { get; set; }
+    public double AverageWaitingTime { get; set; }
+
+    public List<ChartDataPoint> RevenueChartData { get; set; }
+    public List<ChartDataPoint> CustomerGrowthData { get; set; }
+
+    public List<TopItem> TopSellingItems { get; set; }
+    public List<TopItem> LeastSellingItems { get; set; }
+
+    public int WaitingListCount { get; set; }
+    public int NewCustomer { get; set; }
+}
+
+public class ChartDataPoint
+{
+    public string Label { get; set; }
+    public decimal Value { get; set; }
+}
+
+public class TopItem
+{
+    public string Name { get; set; }
+    public int OrderCount { get; set; }
+    public string ImageUrl { get; set; }
+}
